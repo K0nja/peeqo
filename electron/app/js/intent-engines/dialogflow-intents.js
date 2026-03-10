@@ -31,9 +31,12 @@ function parseIntent(cmd){
 			weather.getWeather(cmd.params.city.stringValue)
 			break
 
-		case "expressions":
-			actions.setAnswer(responses.confused, {type: 'remote', queryTerms: [cmd.responseText]})
+		case "expressions": {
+			// responseText is like "expression angry" — extract just the emotion
+			const emotion = cmd.responseText.replace(/^expression\s+/i, '').trim()
+			actions.setAnswer(responses.confused, {type: 'remote', queryTerms: [emotion]})
 			break
+		}
 
 		case "changeGlasses":
 			event.emit("change-glasses")
