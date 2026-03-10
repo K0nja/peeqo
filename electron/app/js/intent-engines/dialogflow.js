@@ -1,4 +1,4 @@
-const dialogflow = require('dialogflow')
+const dialogflow = require('@google-cloud/dialogflow')
 const through2 = require('through2')
 const path = require('path')
 const uuid = require('uuid')
@@ -15,16 +15,17 @@ function setup(){
 	//create a dialogflow session
 	const sessionClient = new dialogflow.SessionsClient({
 		projectId: config.speech.projectId,
-		keyFilename: path.join(process.cwd(), 'app', 'config', config.speech.dialogflowKey)
+		keyFilename: path.join(process.cwd(), 'app', 'config', config.speech.dialogflowKey),
+		fallback: false
 	})
 
-	const sessionPath = sessionClient.sessionPath(config.speech.projectId, sessionId)
+	const sessionPath = sessionClient.projectAgentSessionPath(config.speech.projectId, sessionId)
 
 	// the dialogflow request
 	const dialogflowRequest = {
 		session: sessionPath,
 		queryParams: {
-			session: sessionClient.sessionPath(config.speech.projectId, sessionId)
+			session: sessionClient.projectAgentSessionPath(config.speech.projectId, sessionId)
 		},
 		queryInput:{
 			audioConfig:{

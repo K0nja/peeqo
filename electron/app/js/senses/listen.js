@@ -1,97 +1,55 @@
 'use strict'
 
-const record = require('node-record-lpcm16')
 const path = require('path')
-const os = require('os')
 const config = require('config/config')
-
-const {Detector, Models} = require('snowboy')
-
+const { Porcupine } = require('@picovoice/porcupine-node')
+const { PvRecorder } = require('@picovoice/pvrecorder-node')
 const event = require('js/events/events')
-const mic = require('js/senses/mic')
 
-// const dialogflow = require('js/intent-engines/dialogflow')
+let porcupine = null
+let recorder = null
+let listening = false
 
-function setupSnowboy(){
-	//SNOWBOY WAKEWORD DETECTOR
+function startListening() {
+    const accessKey = config.speech.porcupineAccessKey
+    const keywordPath = path.join(process.cwd(), 'app', 'config', config.speech.model)
 
-	const models = new Models()
+    porcupine = new Porcupine(
+        accessKey,
+        [keywordPath],
+        [config.speech.sensitivity]
+    )
 
-	models.add({
-		file: path.join(process.cwd(),'app','config',config.speech.model),
-		sensitivity: config.speech.sensitivity, // adjust sensitivity if you are getting too many false positive or negatives
-		hotwords: config.speech.wakeword
-	})
+    // -1 = default audio device
+    recorder = new PvRecorder(-1, porcupine.frameLength)
+    recorder.start()
+    listening = true
 
-	const wakewordDetector = new Detector({
-		resource: path.join(process.cwd(), 'app', 'config', 'common.res'),
-		models: models,
-		audioGain: 2.0
-	})
+    console.log("WAKEWORD > Porcupine listening...")
 
-	return wakewordDetector
+    async function listenLoop() {
+        while (listening) {
+            const pcmFrame = await recorder.read()
+            const keywordIndex = porcupine.process(pcmFrame)
+            if (keywordIndex >= 0) {
+                console.log("WAKEWORD > DETECTED")
+                event.emit("wakeword")
+            }
+        }
+    }
+
+    listenLoop().catch(err => console.error("WAKEWORD ERROR:", err))
 }
 
-function setupRecorder(){
-	// MIC RECORDER
-
-	const recorder = (os.arch()=='arm')?'arecord':'rec' // use arecord on pi, rec on laptop
-
-	const recorderOpts={
-		verbose: false,
-		threshold:0,
-		recordProgram: recorder,
-		sampleRateHertz: 16000
-	}
-
-	return {recorder, recorderOpts}
+function stopListening() {
+    listening = false
+    if (recorder) {
+        recorder.stop()
+        recorder.release()
+    }
+    if (porcupine) {
+        porcupine.release()
+    }
 }
 
-
-function startListening(){
-	
-	const wakewordDetector = setupSnowboy()
-
-	const {recorder, recorderOpts} = setupRecorder()
-
-	// WAKEWORD SNOWBOY EVENTS
-	wakewordDetector.on('unpipe', (src) => {
-		console.log("STOPPED PIPING > WAKEWORD")
-	})
-
-	wakewordDetector.on('pipe', (src) => {
-		console.log("PIPING > WAKEWORD")
-	})
-
-	wakewordDetector.on('error', (err) => {
-		console.error("WAKEWORD ERROR: ", err)
-	})
-
-	wakewordDetector.on('close', () => {
-		console.log("WAKEWORD PIPE CLOSED")
-	})
-
-	wakewordDetector.on('hotword', (index, hotword) => {
-
-		console.log("WAKEWORD > DETECTED")
-
-		//unpipe recording from wakeword listener
-		mic.getMic().unpipe(wakewordDetector)
-		event.emit("wakeword")
-	})
-
-	event.on('pipe-to-wakeword', () => {
-		// prevent bug in arecord. WAV has 2gb file limit. After streaming 2GB it starts
-		// sending headers with no data
-		// possible short term solution: restart mic everytime after a response
-		mic.startMic().pipe(wakewordDetector)
-	})
-
-	mic.getMic().pipe(wakewordDetector)
-}
-
-module.exports = {
-	startListening
-}
-
-
+module.exports = { startListening, stopListening }

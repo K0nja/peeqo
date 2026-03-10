@@ -1,3 +1,9 @@
+const os = require('os')
+
+const porcupineModel = os.arch() === 'arm' || os.arch() === 'arm64'
+    ? "Hey-Pico_en_raspberry-pi_v4_0_0.ppn"   // Raspberry Pi ARM
+    : "Hey-Pico_en_linux_v4_0_0.ppn"           // Linux x86_64 - download from console.picovoice.ai
+
 module.exports = {
 	giphy:{
 		key:'HNJNfFOgTHkpXHf5JpcE2EuSmQIbPzmF', // get your own from https://developers.giphy.com/docs/
@@ -5,13 +11,14 @@ module.exports = {
         max_mp4_size: 700000  // max video size it should try to download
 	},
 	speech: {
-        projectId: 'peeqo-awgm', // your dialogflow project name
-        dialogflowKey: 'dialogflow.json', // *.json - name of your dialogflow key file - should be stored in app/config/
-        wakeword: "peeqo", // you can change this wakeword if you record a differnt one on snowboy.kitt.ai
-        language: "en-US", // find supported language codes - https://cloud.google.com/dialogflow-enterprise/docs/reference/language
-        model: "Peeqo.pmdl", // The name of your model - name model downloaded from snowboy.kitt.ai - should be stored in app/config
-        sensitivity: 0.5, // Keyword getting too many false positives or not detecting? Change this.
-        continuous: false // After a keyword is detected keep listening until speech is not heard
+    porcupineAccessKey: 'HruWZ70kg7axHWUYarnnG15SyfYkT4Jd3La7TCWFHA4Xto5zXtxuZw==', // from console.picovoice.ai
+    projectId: 'peeqo-awgm',
+    dialogflowKey: 'dialogflow.json',
+    wakeword: "peeqo",
+    language: "en-US",
+    model: porcupineModel,
+    sensitivity: 0.5,
+    continuous: false
     },
     fileExtensions: [".gif", ".mp4", ".webp"], // list of supported file types
     server: "", //"http://localhost:3000"

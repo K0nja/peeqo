@@ -1,4 +1,9 @@
-const zerorpc = require('zerorpc')
+let zerorpc = null
+try {
+	zerorpc = require('zerorpc')
+} catch(e) {
+	console.log('zerorpc not available (Pi hardware only)')
+}
 const spawn = require('child_process').spawn
 const event = require('js/events/events')
 
@@ -6,6 +11,13 @@ class Camera{
 
 	constructor(){
 		this.connected = false
+
+		if(!zerorpc) {
+			console.log('Camera disabled - zerorpc unavailable')
+			this.registerEvents()
+			return
+		}
+
 		this.client = new zerorpc.Client()
 		this.client.connect("tcp://127.0.0.1:4242")
 		this.client.invoke("hello", (err, res, more) => {
@@ -17,6 +29,10 @@ class Camera{
 			}
 		})
 
+		this.registerEvents()
+	}
+
+	registerEvents(){
 		this.startCamera = this.startCamera.bind(this)
 		this.stopCamera = this.stopCamera.bind(this)
 		this.startRecording = this.startRecording.bind(this)
@@ -26,7 +42,6 @@ class Camera{
 		event.on('camera-off', this.stopCamera)
 		event.on('camera-record', this.startRecording)
 		event.on('camera-stop', this.stopRecording)
-
 	}
 
 	startCamera(){

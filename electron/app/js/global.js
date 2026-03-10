@@ -20,21 +20,11 @@ const weather = require('js/skills/weather')
 
 const listeners = require('js/events/listeners')()
 
-// keyboard shortcuts
-const remote = require('electron').remote
-
+// keyboard shortcuts (F12 devtools handled in main.js)
 document.addEventListener("keydown", (e)=>{
-	if(e.which == 123){
-
-		// F12 - show js console
-		remote.getCurrentWindow().toggleDevTools()
-
-	} else if(e.which == 116){
-
+	if(e.which == 116){
 		// F5 - refresh page
-		// make sure page is in focus, not console
 		location.reload()
-
 	}
 })
 

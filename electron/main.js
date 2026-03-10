@@ -6,12 +6,24 @@ const os = require('os')
 
 var createWindow = () => {
 	let mainWindow = new BrowserWindow({
-		width: 800,
-		height: 480
-	})
+        width: 800,
+        height: 480,
+        webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false
+        }
+})
 
-	// display index.html 
+	// display index.html
 	mainWindow.loadURL('file://'+__dirname+'/app/index.html')
+
+	// handle keyboard shortcuts from renderer
+	mainWindow.webContents.on('before-input-event', (event, input) => {
+		if (input.type === 'keyDown' && input.key === 'F12') {
+			mainWindow.webContents.toggleDevTools()
+			event.preventDefault()
+		}
+	})
 
 	if(os.arch() == 'arm'){
 
@@ -33,7 +45,7 @@ var createWindow = () => {
 
 		// always open console on dev machine
 		mainWindow.webContents.openDevTools();
-		
+
 	}
 }
 
