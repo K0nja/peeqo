@@ -31,6 +31,10 @@ function parseIntent(cmd){
 			weather.getWeather(cmd.params.city.stringValue)
 			break
 
+		case "expressions":
+			actions.setAnswer(responses.confused, {type: 'remote', queryTerms: [cmd.responseText]})
+			break
+
 		case "changeGlasses":
 			event.emit("change-glasses")
 			break
