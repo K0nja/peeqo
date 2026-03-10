@@ -3,11 +3,10 @@
 const path = require('path')
 const config = require('config/config')
 const { Porcupine } = require('@picovoice/porcupine-node')
-const { PvRecorder } = require('@picovoice/pvrecorder-node')
+const record = require('node-record-lpcm16')
 const event = require('js/events/events')
 
 let porcupine = null
-let recorder = null
 let listening = false
 
 function startListening() {
@@ -20,35 +19,46 @@ function startListening() {
         [config.speech.sensitivity]
     )
 
-    // -1 = default audio device
-    recorder = new PvRecorder(-1, porcupine.frameLength)
-    recorder.start()
-    listening = true
+    const frameLength = porcupine.frameLength
+    const sampleRate = porcupine.sampleRate
+    let buffer = Buffer.alloc(0)
 
+    const stream = record.start({
+        sampleRate,
+        channels: 1,
+        audioType: 'raw',
+        encoding: 'signed-integer',
+        bits: 16
+    })
+
+    listening = true
     console.log("WAKEWORD > Porcupine listening...")
 
-    async function listenLoop() {
-        while (listening) {
-            const pcmFrame = await recorder.read()
+    stream.on('data', (chunk) => {
+        if (!listening) return
+        buffer = Buffer.concat([buffer, chunk])
+        const bytesPerFrame = frameLength * 2 // 16-bit = 2 bytes per sample
+        while (buffer.length >= bytesPerFrame) {
+            const frameBuffer = buffer.slice(0, bytesPerFrame)
+            buffer = buffer.slice(bytesPerFrame)
+            const pcmFrame = new Int16Array(frameBuffer.buffer, frameBuffer.byteOffset, frameLength)
             const keywordIndex = porcupine.process(pcmFrame)
             if (keywordIndex >= 0) {
                 console.log("WAKEWORD > DETECTED")
                 event.emit("wakeword")
             }
         }
-    }
+    })
 
-    listenLoop().catch(err => console.error("WAKEWORD ERROR:", err))
+    stream.on('error', (err) => console.error("WAKEWORD ERROR:", err))
 }
 
 function stopListening() {
     listening = false
-    if (recorder) {
-        recorder.stop()
-        recorder.release()
-    }
+    record.stop()
     if (porcupine) {
         porcupine.release()
+        porcupine = null
     }
 }
 

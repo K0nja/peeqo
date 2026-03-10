@@ -4,7 +4,7 @@
   "description": "",
   "main": "main.js",
   "scripts": {
-    "start": "OS=unsupported electron --no-sandbox .",
+    "start": "electron --no-sandbox .",
     "debug": "NODE_ENV=debug electron --no-sandbox .",
     "rebuild": "electron-rebuild --exclude zeromq"
   },
